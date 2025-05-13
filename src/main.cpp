@@ -69,7 +69,7 @@ bool sht3xAvailable = false;  // Track sensor availability
 
 unsigned long currentMillis = millis();
 unsigned long previousMillis = 0;   // Stores last time temperature was published
-const long interval = 10000;        // Interval at which to publish sensor readings
+const long interval = 100000;        // Interval at which to publish sensor readings
 unsigned long start;                // used to measure Pairing time
 unsigned int readingId = 0;   
 
