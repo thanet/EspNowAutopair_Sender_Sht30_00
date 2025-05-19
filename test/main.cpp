@@ -14,13 +14,11 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 #include "SHT3xSensor.h"
-#include <wire.h>
 
 // Set your Board and Server ID 
-#define BOARD_ID 3    // Sensor Number 
+#define BOARD_ID 2    // Sensor Number 
 #define MAX_CHANNEL 13  // 11 in North America or 13 in Europe
 int LED_BUILTIN = 2;
-
 
 uint8_t serverAddress[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 uint8_t clientMacAddress[6];
@@ -66,19 +64,8 @@ int channel = 1;
 // float t = 0;
 // float h = 0;
 // Sensor object
-
 SHT3xSensor sht3x;
 bool sht3xAvailable = false;  // Track sensor availability
-//++ for check I2C connect or not in this case I2C = Sht3x
-// Replace with your actual device's I2C address
-#define DEVICE_ADDR 0x44
-bool checkI2CDevice(uint8_t address) {
-  Wire.beginTransmission(address);
-  byte error = Wire.endTransmission();
-
-  return (error == 0); // true if device ACKs
-}
-//-- for check I2C connect or not in this case I2C = Sht3x
 
 unsigned long currentMillis = millis();
 unsigned long previousMillis = 0;   // Stores last time temperature was published
@@ -266,28 +253,14 @@ void setup() {
   Serial.println();
   pinMode(LED_BUILTIN, OUTPUT);
 
-  //++ for check I2C connect or not in this case I2C = Sht3x
-    Wire.begin(21, 22); // SDA, SCL
-
-    bool connected = checkI2CDevice(DEVICE_ADDR);
-    
-    if (connected) {
-      Serial.println("Device is connected!");
-      // ++Attempt to initialize the SHT30 sensor
-      sht3xAvailable = sht3x.begin();
-      if (sht3xAvailable) {
-        Serial.println("SHT3x sensor initialized successfully.");
-      } else {
-        Serial.println("SHT3x sensor not found, using random data instead.");
-      }
+// ++Attempt to initialize the SHT30 sensor
+  sht3xAvailable = sht3x.begin();
+  if (sht3xAvailable) {
+    Serial.println("SHT3x sensor initialized successfully.");
+  } else {
+    Serial.println("SHT3x sensor not found, using random data instead.");
+  }
 // --Attempt to initialize the SHT30 sensor
-    } else {
-      Serial.println("Device not found!");
-      sht3xAvailable = false;
-    }
-    //-- for check I2C connect or not in this case I2C = Sht3x
-  
-
   
   WiFi.mode(WIFI_STA);
   WiFi.STA.begin();
@@ -324,10 +297,8 @@ void loop() {
         Sht30_Reading();  // Function to read data via SHT30
       } else {
         // Generate random data since SHT30 is not available
-        float t = random(25,40);
-        myData.temp =  t;
-        float h = random(65,99);
-        myData.hum = h;
+        myData.temp = random(0,40);
+        myData.hum = random(0,100);
         for (int i = 0; i<10; ++i)
         {
           Serial.println("Sht30 Error Reading");
