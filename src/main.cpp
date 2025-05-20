@@ -272,7 +272,7 @@ void setup() {
     bool connected = checkI2CDevice(DEVICE_ADDR);
     
     if (connected) {
-      Serial.println("Device is connected!");
+      Serial.println("checkI2CDevice Device is connected!");
       // ++Attempt to initialize the SHT30 sensor
       sht3xAvailable = sht3x.begin();
       if (sht3xAvailable) {
@@ -282,7 +282,7 @@ void setup() {
       }
 // --Attempt to initialize the SHT30 sensor
     } else {
-      Serial.println("Device not found!");
+      Serial.println("checkI2CDevice Device not found!");
       sht3xAvailable = false;
     }
     //-- for check I2C connect or not in this case I2C = Sht3x
