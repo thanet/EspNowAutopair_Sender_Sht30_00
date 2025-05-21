@@ -85,6 +85,8 @@ unsigned long previousMillis = 0;   // Stores last time temperature was publishe
 const long interval = 100000;        // Interval at which to publish sensor readings
 unsigned long start;                // used to measure Pairing time
 unsigned int readingId = 0;   
+unsigned int EspNowConnectCounter = 0;    // used to compare between redingId - EspNowConnectCounter <>10
+
 
 
 void readGetMacAddress(){
@@ -335,7 +337,42 @@ void loop() {
     }
 // --for test with SHT30
       myData.readingId = readingId++;
+      EspNowConnectCounter = myData.readingId;
+
       esp_err_t result = esp_now_send(serverAddress, (uint8_t *) &myData, sizeof(myData));
     }
   }
+
+//++ for check EspNow Still Connected
+EspNowConnectCounter = EspNowConnectCounter++;
+if (EspNowConnectCounter - readingId > 10) {
+
+  pairingStatus = NOT_PAIRED;
+  // Delete existing peers
+    esp_now_del_peer(serverAddress);
+    // Deinitialize ESP-NOW
+    esp_now_deinit();
+    // Initialize ESP-NOW
+    if (esp_now_init()!= ESP_OK) {
+      Serial.println("Error initializing ESP-NOW");
+    }
+
+    
+  Serial.print("Client Board MAC Address:  ");
+  readGetMacAddress();
+  WiFi.disconnect();
+  start = millis();
+
+  #ifdef SAVE_CHANNEL 
+    EEPROM.begin(10);
+    lastChannel = EEPROM.read(0);
+    Serial.println(lastChannel);
+    if (lastChannel >= 1 && lastChannel <= MAX_CHANNEL) {
+      channel = lastChannel; 
+    }
+    Serial.println(channel);
+  #endif  
+  pairingStatus = PAIR_REQUEST;
+}
+//-- for check EspNow Still Connected
 }
