@@ -54,7 +54,7 @@ struct_pairing pairingData;
 enum PairingStatus {NOT_PAIRED, PAIR_REQUEST, PAIR_REQUESTED, PAIR_PAIRED,};
 PairingStatus pairingStatus = NOT_PAIRED;
 
-enum MessageType {PAIRING, DATA,};
+enum MessageType {PAIRING, DATA, RESET};  //++ Add RESET to enum for Send Reset Command
 MessageType messageType;
 
 #ifdef SAVE_CHANNEL
@@ -202,6 +202,16 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
       #endif  
       pairingStatus = PAIR_PAIRED;             // set the pairing status
     }
+    break;
+
+  case RESET: // Incase ESP32 peers who connect router have troble Wifi connection 
+    for (int i = 0; i < 10; i++)
+    {
+      Serial.println("Get Reset Command from Peer Server");
+      Serial.println("prepare to Reset");
+      delay(1000);
+    }
+    ESP.restart();
     break;
   }  
 }
