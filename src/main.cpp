@@ -21,6 +21,37 @@
 #define MAX_CHANNEL 13  // 11 in North America or 13 in Europe
 int LED_BUILTIN = 2;
 
+//++ modify for add many server along running
+#define MAX_PEERS 5   //only 5 Server add per sender 
+#define MAX_PAIRED_SERVERS 5
+uint8_t pairedServers[MAX_PEERS][6];
+int pairedCount = 0;
+//++ for check server mac_addr is in more than limit or not
+bool isAlreadyPaired(const uint8_t * mac_addr) {
+  for (int i = 0; i < pairedCount; i++) {
+    if (memcmp(pairedServers[i], mac_addr, 6) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+//++ for check adding server mac_addr is AlreadyPaired or not to prevent duplicated mac_addr
+bool addPairedServer(const uint8_t * mac_addr) {
+  if (pairedCount >= MAX_PAIRED_SERVERS) return false;
+  if (isAlreadyPaired(mac_addr)) return false;
+
+  memcpy(pairedServers[pairedCount], mac_addr, 6);
+  pairedCount++;
+  return true;
+}
+//++ for send EspNow data to all server in listed
+void sendToAllServers(struct_message data) {
+  for (int i = 0; i < pairedCount; i++) {
+    esp_now_send(pairedServers[i], (uint8_t *)&data, sizeof(data));
+  }
+}
+
+//-- modify for add many server along running
 
 uint8_t serverAddress[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 uint8_t clientMacAddress[6];
@@ -54,7 +85,7 @@ struct_pairing pairingData;
 enum PairingStatus {NOT_PAIRED, PAIR_REQUEST, PAIR_REQUESTED, PAIR_PAIRED,};
 PairingStatus pairingStatus = NOT_PAIRED;
 
-enum MessageType {PAIRING, DATA, RESET};  //++ Add RESET to enum for Send Reset Command
+enum MessageType {PAIRING, DATA, RESET, ADD_SERVER, CONFIRM};  //++ Add RESET to enum for Send Reset Command, add ADD_SERVER , CONFIRM
 MessageType messageType;
 
 #ifdef SAVE_CHANNEL
@@ -213,6 +244,22 @@ void OnDataRecv(const uint8_t * mac_addr, const uint8_t *incomingData, int len) 
     }
     ESP.restart();
     break;
+
+  case ADD_SERVER:  // we received add server request from new server
+    struct_pairing pairingData;
+    memcpy(&pairingData, incomingData, sizeof(pairingData));
+    if (addPairedServer(mac_addr)) {
+      Serial.print("New server added: ");
+      printMAC(mac_addr);
+      // send confirmation back to the new server
+      struct_message confirmData;
+      confirmData.msgType = CONFIRM;
+      confirmData.id = BOARD_ID;
+      esp_now_send(mac_addr, (uint8_t *)&confirmData, sizeof(confirmData));
+    } else {
+      Serial.println("Failed to add new server");
+    }
+    break;
   }  
 }
 
@@ -345,7 +392,19 @@ void loop() {
     }
 // --for test with SHT30
       myData.readingId = readingId++;
-      esp_err_t result = esp_now_send(serverAddress, (uint8_t *) &myData, sizeof(myData));
+      sendToAllServers(myData);
+    }
+
+    // Broadcast channel and MAC address to find new servers
+    static unsigned long lastBroadcastTime = 0;
+    if (millis() - lastBroadcastTime >= 10000) {
+      lastBroadcastTime = millis();
+      struct_pairing pairingData;
+      pairingData.msgType = PAIRING;
+      pairingData.id = BOARD_ID;
+      memcpy(pairingData.macAddr, clientMacAddress, 6);
+      pairingData.channel = channel;
+      esp_now_send(serverAddress, (uint8_t *)&pairingData, sizeof(pairingData));
     }
   }
 }
