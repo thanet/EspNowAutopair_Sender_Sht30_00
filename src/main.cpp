@@ -17,7 +17,7 @@
 #include <wire.h>
 
 // Set your Board and Server ID 
-#define BOARD_ID 3    // Sensor Number 
+#define BOARD_ID 2    // Sensor Number 
 #define MAX_CHANNEL 13  // 11 in North America or 13 in Europe
 int LED_BUILTIN = 2;
 
@@ -76,6 +76,7 @@ int pairedCount = 0;
 bool isAlreadyPaired(const uint8_t * mac_addr) {
   for (int i = 0; i < pairedCount; i++) {
     if (memcmp(pairedServers[i], mac_addr, 6) == 0) {
+      Serial.println("bool isAlreadyPaired is ture:: mean there are exiting peer mac_addr");
       return true;
     }
   }
@@ -83,7 +84,10 @@ bool isAlreadyPaired(const uint8_t * mac_addr) {
 }
 //++ for check adding server mac_addr is AlreadyPaired or not to prevent duplicated mac_addr
 bool addPairedServer(const uint8_t * mac_addr) {
-  if (pairedCount >= MAX_PAIRED_SERVERS) return false;
+  if (pairedCount >= MAX_PAIRED_SERVERS) {
+    Serial.println("It Reach Max Peer(Server) mac_addr in memory") ;
+    return false;
+  }
   if (isAlreadyPaired(mac_addr)) return false;
 
   memcpy(pairedServers[pairedCount], mac_addr, 6);
@@ -93,6 +97,7 @@ bool addPairedServer(const uint8_t * mac_addr) {
 //++ for send EspNow data to all server in listed
 void sendToAllServers(struct_message data) {
   for (int i = 0; i < pairedCount; i++) {
+    Serial.println("Start sendToAllServers Function");
     esp_now_send(pairedServers[i], (uint8_t *)&data, sizeof(data));
   }
 }
@@ -167,12 +172,14 @@ void Sht30_Reading() {
 
 
 void addPeer(const uint8_t * mac_addr, uint8_t chan){
+  Serial.println("AddPeer Funtion Begin");
   ESP_ERROR_CHECK(esp_wifi_set_channel(chan ,WIFI_SECOND_CHAN_NONE));
   esp_now_del_peer(mac_addr);
   memset(&peer, 0, sizeof(esp_now_peer_info_t));
   peer.channel = chan;
   peer.encrypt = false;
   memcpy(peer.peer_addr, mac_addr, sizeof(uint8_t[6]));
+  Serial.println("End addPeer");
   if (esp_now_add_peer(&peer) != ESP_OK){
     Serial.println("Failed to add peer");
     return;
@@ -389,16 +396,24 @@ void loop() {
         for (int i = 0; i<10; ++i)
         {
           Serial.println("Sht30 Error Reading");
+          Serial.print("Simulate Temp = ");
+          Serial.println(t);
+          Serial.print("Simulate Humidity = ");
+          Serial.println(h);
+
+
         }
     }
 // --for test with SHT30
       myData.readingId = readingId++;
       sendToAllServers(myData);
+      Serial.println("End Read and send data");
     }
 
     // Broadcast channel and MAC address to find new servers
     static unsigned long lastBroadcastTime = 0;
     if (millis() - lastBroadcastTime >= 10000) {
+      Serial.println("Continuiously finding new Server ");
       lastBroadcastTime = millis();
       struct_pairing pairingData;
       pairingData.msgType = PAIRING;
@@ -406,6 +421,7 @@ void loop() {
       memcpy(pairingData.macAddr, clientMacAddress, 6);
       pairingData.channel = channel;
       esp_now_send(serverAddress, (uint8_t *)&pairingData, sizeof(pairingData));
+      Serial.println("End loop finding new Server");
     }
   }
 }
