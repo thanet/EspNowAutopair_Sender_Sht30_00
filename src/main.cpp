@@ -21,37 +21,7 @@
 #define MAX_CHANNEL 13  // 11 in North America or 13 in Europe
 int LED_BUILTIN = 2;
 
-//++ modify for add many server along running
-#define MAX_PEERS 5   //only 5 Server add per sender 
-#define MAX_PAIRED_SERVERS 5
-uint8_t pairedServers[MAX_PEERS][6];
-int pairedCount = 0;
-//++ for check server mac_addr is in more than limit or not
-bool isAlreadyPaired(const uint8_t * mac_addr) {
-  for (int i = 0; i < pairedCount; i++) {
-    if (memcmp(pairedServers[i], mac_addr, 6) == 0) {
-      return true;
-    }
-  }
-  return false;
-}
-//++ for check adding server mac_addr is AlreadyPaired or not to prevent duplicated mac_addr
-bool addPairedServer(const uint8_t * mac_addr) {
-  if (pairedCount >= MAX_PAIRED_SERVERS) return false;
-  if (isAlreadyPaired(mac_addr)) return false;
 
-  memcpy(pairedServers[pairedCount], mac_addr, 6);
-  pairedCount++;
-  return true;
-}
-//++ for send EspNow data to all server in listed
-void sendToAllServers(struct_message data) {
-  for (int i = 0; i < pairedCount; i++) {
-    esp_now_send(pairedServers[i], (uint8_t *)&data, sizeof(data));
-  }
-}
-
-//-- modify for add many server along running
 
 uint8_t serverAddress[] = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
 uint8_t clientMacAddress[6];
@@ -97,6 +67,37 @@ int channel = 1;
 // float t = 0;
 // float h = 0;
 // Sensor object
+//++ modify for add many server along running
+#define MAX_PEERS 5   //only 5 Server add per sender 
+#define MAX_PAIRED_SERVERS 5
+uint8_t pairedServers[MAX_PEERS][6];
+int pairedCount = 0;
+//++ for check server mac_addr is in more than limit or not
+bool isAlreadyPaired(const uint8_t * mac_addr) {
+  for (int i = 0; i < pairedCount; i++) {
+    if (memcmp(pairedServers[i], mac_addr, 6) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+//++ for check adding server mac_addr is AlreadyPaired or not to prevent duplicated mac_addr
+bool addPairedServer(const uint8_t * mac_addr) {
+  if (pairedCount >= MAX_PAIRED_SERVERS) return false;
+  if (isAlreadyPaired(mac_addr)) return false;
+
+  memcpy(pairedServers[pairedCount], mac_addr, 6);
+  pairedCount++;
+  return true;
+}
+//++ for send EspNow data to all server in listed
+void sendToAllServers(struct_message data) {
+  for (int i = 0; i < pairedCount; i++) {
+    esp_now_send(pairedServers[i], (uint8_t *)&data, sizeof(data));
+  }
+}
+
+//-- modify for add many server along running
 
 SHT3xSensor sht3x;
 bool sht3xAvailable = false;  // Track sensor availability
